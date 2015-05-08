@@ -4,7 +4,7 @@ import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-public class MQTTListener implements MqttCallback
+public class MqttListener implements MqttCallback
 {
     @Override
     public void connectionLost(Throwable arg0)
@@ -22,8 +22,12 @@ public class MQTTListener implements MqttCallback
     @Override
     public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception
     {
-    	MQTTSimulator.vertical.setValue( MQTTSimulator.vertical.getMaximum() );
-    	MQTTSimulator.jtaMessageReceived.append(mqttMessage.toString() + "\n");
+    	appendToTextArea(mqttMessage);
     }
+
+	private void appendToTextArea(MqttMessage mqttMessage) {
+		MqttSimulator.vertical.setValue( MqttSimulator.vertical.getMaximum() );
+    	MqttSimulator.jtaMessageReceived.append(mqttMessage.toString() + "\n");
+	}
 
 }
