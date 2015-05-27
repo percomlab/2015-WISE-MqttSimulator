@@ -1,8 +1,8 @@
 /*******************************
  * Author: Wei-Chen Chang 
  * Date: 4/21/2015
- * Current version: 1.1
- * Last modified: 05/08/2015
+ * Current version: 1.2
+ * Last modified: 05/27/2015
  */
 
 package nccu.cs.percomlab.mqtt;
