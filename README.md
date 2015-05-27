@@ -7,12 +7,11 @@ How to use
 -----
 
 ### Compile and run source code <br />
-1. Open Eclipse
-2. Import this project
-3. Run MqttSimulator.java
+    1. Open Eclipse
+    2. Import this project
+    3. Run MqttSimulator.java
 
-### Open runnable jar <br/ >
-Run MqttSimulator_v1.2.jar
+### Run MqttSimulator_v1.2.jar <br/ >
 
 Note
 -----
