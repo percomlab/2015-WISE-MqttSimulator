@@ -19,7 +19,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class ButtonListener implements ActionListener {
-	static MqttAsyncClient mqttAsyncClient;
+	private static MqttAsyncClient mqttAsyncClient;
 
 	public ButtonListener() {
 
@@ -39,28 +39,20 @@ public class ButtonListener implements ActionListener {
 			closeConnection();
 		}
 
+		private String getSendMessage() {
+			return MqttSimulator.jtfSendMessage.getText();
+		}
+
+		private void showSendMessage(String messageSent) {
+			MqttSimulator.jtaMessageSent.append(messageSent + "\n");
+		}
+
 		private String getTopic() {
-			return (String) MqttSimulator.jcbDestinationName
-					.getSelectedItem();
+			return (String) MqttSimulator.jcbDestinationName.getSelectedItem();
 		}
 
-		private void closeConnection() {
-			try {
-				MQTTClient.disconnect();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		private void publishMessage(String sendTopic, String messageSent) {
-			MqttMessage msg = new MqttMessage(messageSent.getBytes());
-			msg.setQos(0);
-
-			try {
-				MQTTClient.publish(sendTopic, msg);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		private String getServerUri() {
+			return (String) MqttSimulator.jcbServerUri.getSelectedItem();
 		}
 
 		private void createConnection(String sendServerUri) {
@@ -76,17 +68,23 @@ public class ButtonListener implements ActionListener {
 
 		}
 
-		private void showSendMessage(String messageSent) {
-			MqttSimulator.jtaMessageSent.append(messageSent + "\n");
+		private void publishMessage(String sendTopic, String messageSent) {
+			MqttMessage msg = new MqttMessage(messageSent.getBytes());
+			msg.setQos(0);
+
+			try {
+				MQTTClient.publish(sendTopic, msg);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 
-		private String getSendMessage() {
-			return MqttSimulator.jtfSendMessage.getText();
-		}
-
-		private String getServerUri() {
-			return (String) MqttSimulator.jcbServerUri
-					.getSelectedItem();
+		private void closeConnection() {
+			try {
+				MQTTClient.disconnect();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -116,7 +114,7 @@ public class ButtonListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			String listenTopic = getTopic();
 			String listenServerUri = getServerUri();
-			
+
 			createConnection(listenServerUri);
 			subscribeTopic(listenTopic);
 
@@ -127,15 +125,8 @@ public class ButtonListener implements ActionListener {
 			return (String) MqttSimulator.jcbListenTopic.getSelectedItem();
 		}
 
-		private void subscribeTopic(String listenTopic) {
-			IMqttToken subToken;
-			try {
-				subToken = mqttAsyncClient
-						.subscribe(listenTopic, 0, null, null);
-				subToken.waitForCompletion();
-			} catch (MqttException e) {
-				e.printStackTrace();
-			}
+		private String getServerUri() {
+			return (String) MqttSimulator.jcbMqttUri.getSelectedItem();
 		}
 
 		private void createConnection(String listenServerUri) {
@@ -152,13 +143,24 @@ public class ButtonListener implements ActionListener {
 			}
 		}
 
-		private String getServerUri() {
-			return (String) MqttSimulator.jcbMqttUri.getSelectedItem();
+		private void subscribeTopic(String listenTopic) {
+			IMqttToken subToken;
+			try {
+				subToken = mqttAsyncClient
+						.subscribe(listenTopic, 0, null, null);
+				subToken.waitForCompletion();
+			} catch (MqttException e) {
+				e.printStackTrace();
+			}
 		}
 
 		private void setButton() {
 			hideConnectButton();
 			showDisconnectButton();
+		}
+
+		private void hideConnectButton() {
+			MqttSimulator.btnConnect.setVisible(false);
 		}
 
 		private void showDisconnectButton() {
@@ -169,10 +171,6 @@ public class ButtonListener implements ActionListener {
 		private void disableEdit() {
 			MqttSimulator.jcbMqttUri.setEnabled(false);
 			MqttSimulator.jcbListenTopic.setEnabled(false);
-		}
-
-		private void hideConnectButton() {
-			MqttSimulator.btnConnect.setVisible(false);
 		}
 	}
 
@@ -194,10 +192,6 @@ public class ButtonListener implements ActionListener {
 			hideDisconnectButton();
 		}
 
-		private void hideDisconnectButton() {
-			MqttSimulator.btnDisconnect.setVisible(false);
-		}
-
 		private void showConnectButton() {
 			MqttSimulator.btnConnect.setVisible(true);
 			enableEdit();
@@ -206,6 +200,10 @@ public class ButtonListener implements ActionListener {
 		private void enableEdit() {
 			MqttSimulator.jcbMqttUri.setEnabled(true);
 			MqttSimulator.jcbListenTopic.setEnabled(true);
+		}
+
+		private void hideDisconnectButton() {
+			MqttSimulator.btnDisconnect.setVisible(false);
 		}
 	}
 
