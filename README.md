@@ -1,7 +1,7 @@
 MQTT Simulator
 =====
 
-This java program help you to test a mqtt server.
+This simulator can publish/subscribe message to a MQTT broker.
 
 How to use
 -----
@@ -12,8 +12,8 @@ There are two options for using this program.
 2. Import this project
 3. Run MqttSimulator.java
 
-#### (2) Run MqttSimulator_v1.2.jar <br/ >
+#### (2) Run MqttSimulator_v1.3.jar <br/ >
 
 Note
 -----
-You can modify server address and topic name on the GUI or in the source code. 
+Topic Name, Server URL, and Listen Topic can be modified manually. 

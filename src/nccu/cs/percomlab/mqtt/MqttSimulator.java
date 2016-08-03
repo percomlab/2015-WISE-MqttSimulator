@@ -1,14 +1,17 @@
 /*******************************
  * Author: Wei-Chen Chang 
  * Date: 4/21/2015
- * Current version: 1.2
- * Last modified: 05/27/2015
+ * Current version: 1.3
+ * Last modified: 08/03/2016
  */
 
 package nccu.cs.percomlab.mqtt;
 
 import java.awt.Button;
 import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.UUID;
 
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -18,12 +21,24 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+
 public class MqttSimulator extends JFrame {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
+	private static UUID sub_uuid, pub_uuid;
+	
 	// JLabel declaration
 	private JLabel jlbMessageSent;
 	private JLabel jlbDestinationName;
@@ -64,7 +79,11 @@ public class MqttSimulator extends JFrame {
 			"stage/command", "stage/context" };
 	String strServerUri[] = { "tcp://wearable.nccu.edu.tw:1883" };
 
+	private static MqttAsyncClient mqttAsyncClient;
+	
 	public MqttSimulator() {
+		sub_uuid = UUID.randomUUID();
+		pub_uuid = UUID.randomUUID();
 		init();
 	}
 
@@ -173,7 +192,38 @@ public class MqttSimulator extends JFrame {
 		btnDisconnect.setFont(new java.awt.Font("Dialog", 0, 13));
 		btnDisconnect.setBounds(410, 500, 75, 25);
 		btnDisconnect
-				.addActionListener(new ButtonListener.btnDisconnectListener());
+				.addActionListener(new ActionListener(){
+					public void actionPerformed(ActionEvent e) {
+						closeConnection();
+						setButton();
+					}
+
+					private void closeConnection() {
+						try {
+							mqttAsyncClient.disconnect();
+						} catch (MqttException e1) {
+						}
+					}
+
+					private void setButton() {
+						showConnectButton();
+						hideDisconnectButton();
+					}
+
+					private void showConnectButton() {
+						MqttSimulator.btnConnect.setVisible(true);
+						enableEdit();
+					}
+
+					private void enableEdit() {
+						MqttSimulator.jcbMqttUri.setEnabled(true);
+						MqttSimulator.jcbListenTopic.setEnabled(true);
+					}
+
+					private void hideDisconnectButton() {
+						MqttSimulator.btnDisconnect.setVisible(false);
+					}
+				});
 		btnDisconnect.setVisible(false);
 		add(btnDisconnect);
 	}
@@ -182,7 +232,94 @@ public class MqttSimulator extends JFrame {
 		btnConnect = new Button("Connect");
 		btnConnect.setFont(new java.awt.Font("Dialog", 0, 13));
 		btnConnect.setBounds(410, 500, 75, 25);
-		btnConnect.addActionListener(new ButtonListener.btnConnectListener());
+		btnConnect.addActionListener(new ActionListener(){		
+			public void actionPerformed(ActionEvent e) {
+				String listenTopic = getTopic();
+				String listenServerUri = getServerUri();
+
+				createConnection(listenServerUri);
+				subscribeTopic(listenTopic);
+
+				setButton();
+				MqttSimulator.jtaMessageReceived.setText(null);
+			}
+
+			private String getTopic() {
+				return (String) MqttSimulator.jcbListenTopic.getSelectedItem();
+			}
+
+			private String getServerUri() {
+				return (String) MqttSimulator.jcbMqttUri.getSelectedItem();
+			}
+
+			private void createConnection(String listenServerUri) {
+				try {
+					mqttAsyncClient = new MqttAsyncClient(listenServerUri,
+							sub_uuid.toString(), new MemoryPersistence());
+					MqttConnectOptions connOpts = new MqttConnectOptions();
+					connOpts.setCleanSession(true);
+					mqttAsyncClient.setCallback(new MqttCallback(){
+						@Override
+					    public void connectionLost(Throwable arg0)
+					    {
+					        // Do nothing
+					    }
+
+					    @Override
+					    public void deliveryComplete(IMqttDeliveryToken arg0)
+					    {
+					        // Do nothing
+					    }
+					    
+					    // Called when delivery for a message has been completed
+					    @Override
+					    public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception
+					    {
+					    	appendToTextArea(mqttMessage);
+					    }
+
+						private void appendToTextArea(MqttMessage mqttMessage) {
+							MqttSimulator.vertical.setValue( MqttSimulator.vertical.getMaximum() );
+					    	MqttSimulator.jtaMessageReceived.append(mqttMessage.toString() + "\n");
+						}
+					});
+					IMqttToken conToken = mqttAsyncClient.connect(connOpts);
+					conToken.waitForCompletion();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			private void subscribeTopic(String listenTopic) {
+				IMqttToken subToken;
+				try {
+					subToken = mqttAsyncClient
+							.subscribe(listenTopic, 0, null, null);
+					subToken.waitForCompletion();
+				} catch (MqttException e) {
+					e.printStackTrace();
+				}
+			}
+
+			private void setButton() {
+				hideConnectButton();
+				showDisconnectButton();
+			}
+
+			private void hideConnectButton() {
+				MqttSimulator.btnConnect.setVisible(false);
+			}
+
+			private void showDisconnectButton() {
+				MqttSimulator.btnDisconnect.setVisible(true);
+				disableEdit();
+			}
+
+			private void disableEdit() {
+				MqttSimulator.jcbMqttUri.setEnabled(false);
+				MqttSimulator.jcbListenTopic.setEnabled(false);
+			}
+		});
 		add(btnConnect);
 	}
 
@@ -191,7 +328,15 @@ public class MqttSimulator extends JFrame {
 		btnMessageReceivedClear.setFont(new java.awt.Font("Dialog", 0, 13));
 		btnMessageReceivedClear.setBounds(420, 310, 65, 25);
 		btnMessageReceivedClear
-				.addActionListener(new ButtonListener.btnMessageReceivedClearListener());
+				.addActionListener(new ActionListener(){
+					public void actionPerformed(ActionEvent e) {
+						cleanTextArea();
+					}
+
+					private void cleanTextArea() {
+						MqttSimulator.jtaMessageReceived.setText(null);
+					}
+				});
 		add(btnMessageReceivedClear);
 	}
 
@@ -199,7 +344,68 @@ public class MqttSimulator extends JFrame {
 		btnSend = new Button("Send");
 		btnSend.setFont(new java.awt.Font("Dialog", 0, 13));
 		btnSend.setBounds(420, 190, 65, 25);
-		btnSend.addActionListener(new ButtonListener.btnSendListener());
+		btnSend.addActionListener(new ActionListener(){
+			MqttClient MQTTClient;
+
+			public void actionPerformed(ActionEvent e) {
+				String messageSent = getSendMessage();
+				showSendMessage(messageSent);
+				String sendTopic = getTopic();
+				String sendServerUri = getServerUri();
+
+				createConnection(sendServerUri);
+				publishMessage(sendTopic, messageSent);
+				closeConnection();
+			}
+
+			private String getSendMessage() {
+				return MqttSimulator.jtfSendMessage.getText();
+			}
+
+			private void showSendMessage(String messageSent) {
+				MqttSimulator.jtaMessageSent.append(messageSent + "\n");
+			}
+
+			private String getTopic() {
+				return (String) MqttSimulator.jcbDestinationName.getSelectedItem();
+			}
+
+			private String getServerUri() {
+				return (String) MqttSimulator.jcbServerUri.getSelectedItem();
+			}
+
+			private void createConnection(String sendServerUri) {
+				try {
+					MQTTClient = new MqttClient(sendServerUri, pub_uuid.toString(),
+							new MemoryPersistence());
+					MqttConnectOptions connOpts = new MqttConnectOptions();
+					connOpts.setCleanSession(true);
+					MQTTClient.connect(connOpts);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
+			}
+
+			private void publishMessage(String sendTopic, String messageSent) {
+				MqttMessage msg = new MqttMessage(messageSent.getBytes());
+				msg.setQos(0);
+
+				try {
+					MQTTClient.publish(sendTopic, msg);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			private void closeConnection() {
+				try {
+					MQTTClient.disconnect();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 		add(btnSend);
 	}
 
@@ -208,7 +414,15 @@ public class MqttSimulator extends JFrame {
 		btnMessageSentClear.setFont(new java.awt.Font("Dialog", 0, 13));
 		btnMessageSentClear.setBounds(420, 5, 65, 25);
 		btnMessageSentClear
-				.addActionListener(new ButtonListener.btnMessageSentClearListener());
+				.addActionListener(new ActionListener() {				
+					public void actionPerformed(ActionEvent e) {
+						cleanTextArea();
+					}
+
+					private void cleanTextArea() {
+						MqttSimulator.jtaMessageSent.setText(null);
+					}
+				});
 		add(btnMessageSentClear);
 	}
 
